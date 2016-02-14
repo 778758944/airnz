@@ -1,0 +1,220 @@
+<?php
+/**
+ * Implementation of hook_menu().
+ */
+function airnewzealand_menu()
+{   
+  // $items['admin/config/airnewzealand'] = array(
+  //   'title' => '新西兰航空',
+  //   'description' => '新西兰航空微信页面设置',
+  //   'position' => 'right',
+  //   'weight' => -5,
+  //   'page callback' => 'system_admin_menu_block_page',
+  //   'access arguments' => array('administer site configuration'),
+  //   'file' => 'system.admin.inc',
+  //   'file path' => drupal_get_path('module', 'system')
+  //   );
+  //
+    $items['admin/config/services/airnezealand-settings']= array(
+    'title' =>        '设置',
+    'description'=>   '设置相关微信服务参数',	
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oather_form'),
+    'access arguments' => array('administer site configuration'),
+    'type'=>          MENU_NORMAL_ITEM
+    );
+    $items['a/b'] = array(
+    'page callback' => 'get_user_info',
+    'access arguments' => array('access content'),
+    'type'=> MENU_CALLBACK
+    );
+    return $items;
+}
+/**
+ * Implements hook_help().
+ */
+function airnewzealand_help($path,$arg)
+{
+    $output='';
+    switch ($path) {
+    	case 'admin/help/airnewzealand':
+    		$output= '新西兰航空微信活动服务';
+    		break;
+    }
+    return $output;
+}
+function oather_form()
+{   drupal_set_message('load success');
+   	$form['appid']=array(
+	'#title' =>'微信服务appID',
+	'#type'  =>'textfield',
+	'#required' =>TRUE,
+	'#default_value'=>variable_get('wechatappid', '')
+	);
+    $form['appsecret']=array(
+	'#title' =>'微信服务appSECRET',
+	'#type'  =>'textfield',
+	'#required' =>TRUE,
+	'#default_value'=>variable_get('wechatappsecret', '')
+	);
+	$form['submit'] = array(
+	'#value' => '提交',
+	'#type' => 'submit',
+	'#required' => TRUE,
+	'#submit' =>array('oather_form_submit'),
+	'#validate' => array('oather_form_validate')
+	);
+	return $form;
+
+}
+function oather_form_submit(&$form,&$form_state)
+{
+	variable_set('wechatappid', $form_state['values']['appid']);
+	variable_set('wechatappsecret',$form_state['values']['appsecret']);
+	//drupal_set_message('信息存入成功');
+    //drupal_set_message(variable_get('wechatappid', ''));
+    //drupal_set_message(variable_get('wechatappsecret', ''));
+
+}
+
+function oather_form_validate($form,$form_state)
+{
+    if(drupal_strlen($form_state['values']['appid'])<5)
+    {
+    	form_set_error('APPid长度不合法');
+    }
+    if(drupal_strlen($form_state['values']['appsecret'])<10)
+    {
+    	form_set_error('APPsecret长度不合法');
+    }
+}
+function get_user_info()
+{  
+    if (!isset($_GET['code'])){
+      //触发微信返回code码
+      
+        $baseUrl = urlencode('http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
+        variable_set('baseurl',$baseurl);
+        $url = __CreateOauthUrlForCode($baseUrl);
+        Header("Location: $url");
+        // echo $url;
+      }
+    $appId=variable_get('wechatappid', '');
+    $appSecret=variable_get('wechatappsecret', '');
+    $token_url="https://api.weixin.qq.com/sns/oauth2/access_token?appid=$appId&secret=$appSecret&code=$code&grant_type=authorization_code";
+    $backjson=json_decode(http_get($token_url),true);
+    if (json_charge($backjson))
+    {
+         $token=$backjson['access_token'];
+         $openid=$backjson['openid'];
+         //print_r($backjson); 
+         // print($token);
+         // print($openid);       
+    }
+    else
+    {
+         print('errcode1:'.$backjson['errcode'].'.errmsg:'.$backjson['errmsg'].'.');
+         return;
+    }
+    $userinfo_url ="https://api.weixin.qq.com/sns/userinfo?access_token=$token&openid=$openid&lang=zh_CN";
+    $backjson=json_decode(http_get($userinfo_url),true);
+    if (!json_charge($backjson))
+    {  // print ($backjson);
+        print('errcode2:'.$backjson['errcode'].'.errmsg:'.$backjson['errmsg'].'.');
+        return;
+    
+    }
+    echo '<meta charset="utf-8">';
+    setcookie('openid',$openid);
+    variable_set('openid', $openid);
+    $jumpurl='http://airnz.clients.inzen.com.cn/html/test.php?openid='.$openid; 
+    //exit(json_encode($backjson));
+    drupal_goto($jumpurl);
+    drupal_exit();
+    //  $code=$_GET['code'];
+    //  $appId=variable_get('wechatappid', '');
+    //  $appSecret=variable_get('wechatappsecret', '');
+    //  $token_url="https://api.weixin.qq.com/sns/oauth2/access_token?appid=$appId&secret=$appSecret&code=$code&grant_type=authorization_code";
+    //  $token_charge=variable_get('access_token', '');
+    //  $currentdate=strtotime(date("y-m-d h:i:s"));
+    //  if(empty($token_charge))//判断缓存中是否有获取过的ACCESS_TOKEN
+    //  {//缓存中无获取过的令牌  
+        
+    //      $token=json_decode(http_get($token_url),true);//进行获取
+    //      if (!json_charge($token))//判断是否获取成功
+    //      {
+    //         drupal_set_message($token['errmsg']);//获取失败，返回错误
+    //      }
+    //      else
+    //      {
+    //         $token_string=$token['access_token'];
+    //         variable_set('access_token',$token_string);
+    //         variable_set('token_date',date("y-m-d h:i:s"));//获取成功，对令牌进行缓存
+    //      }
+         
+    //  }
+    //  else
+    //  {//缓存中有获取过的令牌
+    //     if ($currentdate-(strtotime(variable_get('token_date','')))>7100)//判断令牌是否过期
+    //     {//已过期
+    //         $token=json_decode(http_get($token_url),true);//进行获取
+    //     if (!json_charge($token))//判断是否获取成功
+    //      {
+    //         drupal_set_message($token['errmsg']);//获取失败,返回错误
+    //      }
+    //      else
+    //      {
+    //         $token_string=$token['access_token'];
+    //         variable_set('access_token',$token_string);
+    //         variable_set('token_date',date("y-m-d h:i:s"));//获取成功，对令牌进行缓存
+    //      }
+ 
+    //      }
+    //      else
+    //     {//未过期
+    //         $token_string=variable_get('access_token', '');
+    //     }
+
+    // }
+
+     
+
+    //  $openid_string =$token['openid'];        
+    //  $userinfo_url ="https://api.weixin.qq.com/sns/userinfo?access_token=$token_string&openid=$openid_string&lang=zh_CN";
+    //  $curl=curl_init();
+    //  curl_setopt($curl,CURLOPT_URL,$userinfo_url);
+    //  curl_setopt($curl,CURLOPT_RETURNTRANSFER, 1);
+    //  $userinfo_temp=curl_exec($curl);
+    //  curl_close($curl);
+    //  $userinfo=json_decode($userinfo_temp,true);
+ }
+ function http_get($url)
+ {
+     $curl=curl_init();
+     curl_setopt($curl,CURLOPT_URL,$url);
+     curl_setopt($curl,CURLOPT_RETURNTRANSFER, 1);
+     $temp=curl_exec($curl);
+     curl_close($curl);
+     return $temp;
+ }
+ function json_charge($charge)
+ {
+  if (!empty($charge['errcode']))
+  {
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+ }
+ function upload_user_info()
+ {   
+    if (!empty($_GET['openid']))
+    {
+    $openid=$_GET['openid'];
+    $crtpage=$_GET['pageid'];
+    $nid = db_insert('pagerecord')
+  ->fields(array(
+    'openid' => $openid,
+    'pageid' => $crtpage,

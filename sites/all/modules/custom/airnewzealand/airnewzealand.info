@@ -1,0 +1,8 @@
+name = airnewzealand
+description = airnewzealand wechat OAuther
+package = Inzen		
+core = 7.x
+files[] =airnewzealand.module
+files[] =airnewzealand.install
+files[] =airnewzealand.inc
+configure= admin/config/airnewzealand/settings

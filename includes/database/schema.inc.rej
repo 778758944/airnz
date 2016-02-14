@@ -1,0 +1,14 @@
+--- a/core/includes/database/mysql/schema.inc
++++ b/core/includes/database/mysql/schema.inc
+@@ -142,6 +142,11 @@
+       $sql .= ' unsigned';
+     }
+ 
++    // If it is a text-field, check to see if we should use utf8mb4 (4-byte UTF8) as the character set
++    if ($spec['type'] == 'text' && variable_get('mysql_textfield_character_set','utf8') == 'utf8mb4') {
++      $sql .= ' CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci';
++    }
++
+     if (isset($spec['not null'])) {
+       if ($spec['not null']) {
+         $sql .= ' NOT NULL';

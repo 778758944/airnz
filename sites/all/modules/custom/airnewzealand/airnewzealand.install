@@ -1,0 +1,29 @@
+<?php
+/**
+ * Implements hook_ischema()
+ */
+function airnewzealand_schema(){
+   $schema['wechat_userinfo'] = array(
+    'description' => 'wechat user infomation',
+    'fields' => array(
+      'openid' => array( 'type' => 'varchar','length' => '28','not null' => TRUE),
+      'nickname' => array('type' => 'varchar','length' =>'32','not null' => TRUE)),
+    'primary key' =>array('openid'));
+   $schema['pagerecord'] = array(
+    'description' => 'user path infomation',
+    'fields' => array(
+      'rid' => array( 'type' => 'int'),
+      'openid' => array( 'type' => 'varchar','length' => '28','not null' => TRUE),
+      'pageid' => array( 'type' => 'varchar','length' =>'10','not null' => TRUE),
+      'nickname' => array('type' => 'varchar','length' =>'32','not null' => TRUE),
+      'time' => array('type' => 'int')
+      ),
+    'primary key' =>array('rid'));
+   $schema['reward'] = array(
+    'description' => 'wechat user infomation',
+    'fields' => array(
+      'nickname' => array('type' => 'varchar','length' =>'32','not null' => TRUE)),
+    'primary key' =>array('nickname'));
+    return $schema; 
+
+}

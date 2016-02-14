@@ -1,0 +1,63 @@
+diff --git a/core/includes/database/mysql/database.inc b/core/includes/database/mysql/database.inc
+index e024a7f..2c1b4ae 100644
+--- a/core/includes/database/mysql/database.inc
++++ b/core/includes/database/mysql/database.inc
+@@ -52,14 +52,16 @@ class DatabaseConnection_mysql extends DatabaseConnection {
+ 
+     parent::__construct($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+ 
+-    // Force MySQL to use the UTF-8 character set. Also set the collation, if a
+-    // certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
+-    // for UTF-8.
++    // Default Drupal to use the UTF-8 character set, but allow the use of
++    // utf8mb4 for better internationalization and full 4-byte UTF-8 support
++    // if set. Also set the collation, if a certain one has been set; otherwise,
++    // MySQL defaults to 'utf8_general_ci' for UTF-8.
++    $charset = variable_get('mysql_textfield_character_set','utf8') == 'utf8mb4' ? 'utf8mb4' : 'utf8';
+     if (!empty($connection_options['collation'])) {
+-      $this->exec('SET NAMES utf8 COLLATE ' . $connection_options['collation']);
++      $this->exec('SET NAMES ' . $charset . ' COLLATE ' . $connection_options['collation']);
+     }
+     else {
+-      $this->exec('SET NAMES utf8');
++      $this->exec('SET NAMES ' . $charset);
+     }
+ 
+     // Set MySQL init_commands if not already defined.  Default Drupal's MySQL
+diff --git a/core/includes/database/mysql/schema.inc b/core/includes/database/mysql/schema.inc
+index 4e88fa1..c09905e 100644
+--- a/core/includes/database/mysql/schema.inc
++++ b/core/includes/database/mysql/schema.inc
+@@ -142,6 +142,11 @@ class DatabaseSchema_mysql extends DatabaseSchema {
+       $sql .= ' unsigned';
+     }
+ 
++    // If it is a text-field, check to see if we should use utf8mb4 (4-byte UTF8) as the character set
++    if ($spec['type'] == 'text' && variable_get('mysql_textfield_character_set','utf8') == 'utf8mb4') {
++      $sql .= ' CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci';
++    }
++
+     if (isset($spec['not null'])) {
+       if ($spec['not null']) {
+         $sql .= ' NOT NULL';
+diff --git a/sites/default/default.settings.php b/sites/default/default.settings.php
+index 360e556..f0efe00 100755
+--- a/sites/default/default.settings.php
++++ b/sites/default/default.settings.php
+@@ -510,3 +510,16 @@ $conf['404_fast_html'] = '<html xmlns="http://www.w3.org/1999/xhtml"><head><titl
+  * Remove the leading hash signs to disable.
+  */
+ # $conf['allow_authorize_operations'] = FALSE;
++
++/**
++ * MySQL 4-Byte UTF8 Character for text fields
++ * 
++ * By default MySQL only uses a 3-byte UTF8 character set. This can cause
++ * when trying to save data that contains high-order UTF8 characters, such
++ * as math symbols and rarer languages. If you have MySQL 5.5+, you can turn
++ * on support for 4-Byte UTF8 characers in text-fields by enabling the utf8mb4
++ * character set on all text columns. 
++ * 
++ * To enable this functionality, remove the leading hash sign below.
++ */
++$conf['mysql_textfield_character_set'] = 'utf8mb4';
